@@ -24,12 +24,19 @@ export const getDataForLocation = async (req, res) => {
       fetchPollutionForecast(loc.lat, loc.lng).catch(() => []),
     ]);
 
-    // Simple upcoming alerts (first exceedance within next 24h)
-    const TIDE_THRESHOLD = Number(process.env.TIDE_THRESHOLD) || 6;
+    // ✅ Extract current values (first element of forecast arrays)
+    const currentTide = Array.isArray(tideForecast) && tideForecast.length ? Number(tideForecast[0].height) : null;
+    const currentTemp = Array.isArray(weatherForecast) && weatherForecast.length ? Number(weatherForecast[0].temp) : null;
+    const currentPollution = Array.isArray(pollutionForecast) && pollutionForecast.length ? Number(pollutionForecast[0].pm2_5) : null;
+
+    // Thresholds (from .env or defaults)
+    const TIDE_THRESHOLD = Number(process.env.TIDE_THRESHOLD) || 1.2;
     const POLLUTION_THRESHOLD = Number(process.env.POLLUTION_THRESHOLD) || 100;
     const TEMP_THRESHOLD = Number(process.env.TEMP_THRESHOLD) || 35;
 
+    // Simple upcoming alerts (first exceedance within next 24h)
     const upcomingAlerts = [];
+
     const firstHighTide = tideForecast.find((h) => h?.height != null && h.height > TIDE_THRESHOLD);
     if (firstHighTide) {
       upcomingAlerts.push({
@@ -61,9 +68,15 @@ export const getDataForLocation = async (req, res) => {
       });
     }
 
+    // ✅ Include both current values + forecasts in API response
     const payload = {
       location: loc.name,
       timestamp: new Date().toISOString(),
+      current: {
+        tide: currentTide,
+        temperature: currentTemp,
+        pollution: currentPollution,
+      },
       tideForecast,
       weatherForecast,
       pollutionForecast,
@@ -79,3 +92,4 @@ export const getDataForLocation = async (req, res) => {
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
+ 

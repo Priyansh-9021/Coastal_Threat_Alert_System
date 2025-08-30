@@ -1,6 +1,8 @@
 // services/alertService.js
 import twilio from "twilio";
+import dotenv from "dotenv";
 
+dotenv.config();
 const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH);
 
 // thresholds (can be overridden with .env)
@@ -33,6 +35,7 @@ export async function checkThresholds({ tide, weather, pollution, location }) {
       alerts.push(alert);
       await sendSMS(message);
     }
+    console.log(alerts.length);
   } catch (err) {
     console.error("Error while checking thresholds / sending SMS:", err.message);
     // still return any alerts collected so frontend can display them
